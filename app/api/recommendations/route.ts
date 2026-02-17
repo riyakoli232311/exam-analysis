@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { streamText } from 'ai'
-import { xai } from '@ai-sdk/xai'
+import { generateText } from 'ai'
+import { createGroq } from '@ai-sdk/groq'
 import { getSession } from '@/lib/auth'
 import { getDb } from '@/lib/db'
 
 export const maxDuration = 30
+
+const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
 
 export async function GET() {
   const session = await getSession()
@@ -23,7 +25,6 @@ export async function GET() {
     WHERE mt.user_id = ${session.userId}
   `
 
-  // Calculate weak topics
   const topicMap: Record<string, { correct: number; total: number }> = {}
   for (const q of questions) {
     const key = `${q.subject} > ${q.topic}`
@@ -37,54 +38,42 @@ export async function GET() {
     .sort((a, b) => a.accuracy - b.accuracy)
     .slice(0, 5)
 
-  const avgAccuracy = tests.length > 0 
-    ? Math.round(tests.reduce((s: number, t: { accuracy: number }) => s + Number(t.accuracy), 0) / tests.length) 
+  const avgAccuracy = tests.length > 0
+    ? Math.round(tests.reduce((s: number, t: { accuracy: number }) => s + Number(t.accuracy), 0) / tests.length)
     : 0
 
-  const prompt = `Generate personalized study recommendations for a ${profile?.selected_exam?.toUpperCase() || 'competitive exam'} aspirant.
+  const prompt = `Generate 5 personalized study recommendations for a ${profile?.selected_exam?.toUpperCase() || 'competitive exam'} aspirant.
 
-Performance Summary:
+Performance:
 - Tests taken: ${tests.length}
 - Average Accuracy: ${avgAccuracy}%
 - Weak Areas: ${weakTopics.map(t => `${t.topic} (${t.accuracy}%)`).join(', ') || 'No data yet'}
 
-Generate 5 specific, actionable recommendations in JSON format:
-[{"title": "...", "description": "...", "priority": "high|medium|low", "category": "study|practice|strategy|revision"}]
+Return ONLY a valid JSON array, no markdown, no extra text:
+[{"title": "...", "description": "...", "priority": "high", "category": "study"}]
 
-Be specific to the ${profile?.selected_exam?.toUpperCase() || ''} exam context. Do not wrap in markdown code blocks.`
+priority must be: high, medium, or low
+category must be: study, practice, strategy, or revision`
 
   try {
-    const result = await streamText({
-      model: xai('grok-3-mini-fast', { apiKey: process.env.XAI_API_KEY }),
+    const { text } = await generateText({
+      model: groq('llama-3.1-8b-instant'),
       prompt,
     })
-
-    let text = ''
-    for await (const chunk of result.textStream) {
-      text += chunk
-    }
-
-    try {
-      const recommendations = JSON.parse(text.trim())
-      return NextResponse.json({ recommendations })
-    } catch {
-      return NextResponse.json({
-        recommendations: [
-          { title: 'Take More Practice Tests', description: 'Upload at least 3 mock tests to get personalized insights.', priority: 'high', category: 'practice' },
-          { title: 'Focus on Weak Areas', description: weakTopics.length > 0 ? `Focus on: ${weakTopics.map(t => t.topic).join(', ')}` : 'Upload tests to identify weak areas.', priority: 'high', category: 'study' },
-          { title: 'Review Mistakes', description: 'Analyze your mistake patterns to understand conceptual gaps vs calculation errors.', priority: 'medium', category: 'revision' },
-          { title: 'Time Management', description: 'Practice solving questions within time limits to improve speed.', priority: 'medium', category: 'strategy' },
-          { title: 'Track Progress', description: 'Compare your scores over time to see improvement trends.', priority: 'low', category: 'strategy' },
-        ]
-      })
-    }
-  } catch {
-    return NextResponse.json({
-      recommendations: [
-        { title: 'Start with Practice Tests', description: 'Upload mock test results to get AI-powered recommendations.', priority: 'high', category: 'practice' },
-        { title: 'Set a Study Schedule', description: 'Consistency is key. Study at least 4 hours daily.', priority: 'high', category: 'strategy' },
-        { title: 'Focus on Fundamentals', description: 'Master basic concepts before moving to advanced topics.', priority: 'medium', category: 'study' },
-      ]
-    })
+    const cleaned = text.replace(/```json|```/g, '').trim()
+    const recommendations = JSON.parse(cleaned)
+    return NextResponse.json({ recommendations })
+  } catch (error) {
+    console.error('Groq error:', error)
   }
+
+  return NextResponse.json({
+    recommendations: [
+      { title: 'Take More Practice Tests', description: 'Upload at least 3 mock tests to get personalized insights.', priority: 'high', category: 'practice' },
+      { title: 'Focus on Weak Areas', description: weakTopics.length > 0 ? `Focus on: ${weakTopics.map(t => t.topic).join(', ')}` : 'Upload tests to identify weak areas.', priority: 'high', category: 'study' },
+      { title: 'Review Mistakes', description: 'Analyze your mistake patterns to understand conceptual gaps vs calculation errors.', priority: 'medium', category: 'revision' },
+      { title: 'Time Management', description: 'Practice solving questions within time limits to improve speed.', priority: 'medium', category: 'strategy' },
+      { title: 'Track Progress', description: 'Compare your scores over time to see improvement trends.', priority: 'low', category: 'strategy' },
+    ]
+  })
 }
