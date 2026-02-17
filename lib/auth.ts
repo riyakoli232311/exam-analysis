@@ -15,12 +15,12 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash)
 }
 
-export async function createSession(userId: string) {
-  const token = await new SignJWT({ userId })
+export async function createSession(profileId: string) {
+  const token = await new SignJWT({ userId: profileId })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
     .sign(JWT_SECRET)
-  
+
   const cookieStore = await cookies()
   cookieStore.set('session', token, {
     httpOnly: true,
@@ -36,7 +36,7 @@ export async function getSession() {
   const cookieStore = await cookies()
   const token = cookieStore.get('session')?.value
   if (!token) return null
-  
+
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
     return payload as { userId: string }
@@ -48,12 +48,12 @@ export async function getSession() {
 export async function getCurrentUser() {
   const session = await getSession()
   if (!session) return null
-  
+
   const sql = getDb()
   const rows = await sql`
-    SELECT up.*, na.email 
+    SELECT up.*, u.email
     FROM user_profiles up
-    JOIN neon_auth."user" na ON na.id = up.auth_user_id
+    JOIN users u ON u.id = up.user_id
     WHERE up.id = ${session.userId}
   `
   return rows[0] || null

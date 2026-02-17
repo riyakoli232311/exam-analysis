@@ -8,30 +8,31 @@ export async function POST(req: Request) {
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
+    if (password.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+    }
 
     const sql = getDb()
-    
-    const existing = await sql`SELECT id FROM neon_auth."user" WHERE email = ${email}`
+
+    // Check if email already exists
+    const existing = await sql`SELECT id FROM users WHERE email = ${email}`
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
     }
 
-    const hashedPassword = await hashPassword(password)
-    
-    const [authUser] = await sql`
-      INSERT INTO neon_auth."user" (name, email, "emailVerified", role, banned)
-      VALUES (${name}, ${email}, true, 'user', false)
+    const passwordHash = await hashPassword(password)
+
+    // Create user
+    const [user] = await sql`
+      INSERT INTO users (name, email, password_hash)
+      VALUES (${name}, ${email}, ${passwordHash})
       RETURNING id
     `
 
-    await sql`
-      INSERT INTO neon_auth.account ("userId", "providerId", password, scope)
-      VALUES (${authUser.id}, 'credentials', ${hashedPassword}, 'email')
-    `
-
+    // Create profile
     const [profile] = await sql`
-      INSERT INTO user_profiles (auth_user_id, display_name, onboarded)
-      VALUES (${authUser.id}, ${name}, false)
+      INSERT INTO user_profiles (user_id, display_name, onboarded)
+      VALUES (${user.id}, ${name}, false)
       RETURNING id
     `
 

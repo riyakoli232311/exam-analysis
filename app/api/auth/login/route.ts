@@ -10,12 +10,12 @@ export async function POST(req: Request) {
     }
 
     const sql = getDb()
-    
+
+    // Find user
     const users = await sql`
-      SELECT na.id, na.name, na.email, acc.password
-      FROM neon_auth."user" na
-      JOIN neon_auth.account acc ON acc."userId" = na.id
-      WHERE na.email = ${email} AND acc."providerId" = 'credentials'
+      SELECT u.id, u.name, u.email, u.password_hash
+      FROM users u
+      WHERE u.email = ${email}
     `
 
     if (users.length === 0) {
@@ -23,13 +23,14 @@ export async function POST(req: Request) {
     }
 
     const user = users[0]
-    const isValid = await verifyPassword(password, user.password)
+    const isValid = await verifyPassword(password, user.password_hash)
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
+    // Get profile
     const profiles = await sql`
-      SELECT id, onboarded, selected_exam FROM user_profiles WHERE auth_user_id = ${user.id}
+      SELECT id, onboarded, selected_exam FROM user_profiles WHERE user_id = ${user.id}
     `
 
     if (profiles.length === 0) {
