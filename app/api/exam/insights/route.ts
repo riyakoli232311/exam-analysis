@@ -17,7 +17,7 @@ export async function GET() {
   const examType = profile?.selected_exam || 'jee'
 
   const tests = await sql`
-    SELECT accuracy, total_score, max_score FROM mock_tests
+    SELECT accuracy, total_score, max_score FROM mock_tests 
     WHERE user_id = ${session.userId} ORDER BY created_at DESC LIMIT 5
   `
   const avgAccuracy = tests.length > 0
@@ -27,15 +27,17 @@ export async function GET() {
   const prompt = `Generate exam insights for the ${examType.toUpperCase()} competitive exam.
 Student's current average accuracy: ${avgAccuracy}% across ${tests.length} tests.
 
-Return ONLY a valid JSON object with these exact fields, no markdown, no extra text:
+Return ONLY a valid JSON object, no markdown, no code blocks, no extra text:
 {
   "overview": "Brief exam overview (2-3 sentences)",
-  "syllabus": ["Subject 1", "Subject 2", "Subject 3"],
+  "syllabus": ["Key subject 1", "Key subject 2", "Key subject 3"],
   "highWeightageTopics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"],
   "commonMistakes": ["Mistake 1", "Mistake 2", "Mistake 3"],
   "preparationStrategy": "Detailed strategy paragraph",
   "readinessAssessment": "Assessment based on their ${avgAccuracy}% accuracy"
-}`
+}
+
+Be specific to ${examType.toUpperCase()}.`
 
   try {
     const { text } = await generateText({
@@ -48,7 +50,7 @@ Return ONLY a valid JSON object with these exact fields, no markdown, no extra t
       const insights = JSON.parse(cleaned)
       return NextResponse.json({ insights, examType })
     } catch {
-      // fallback
+      // fall through to fallback
     }
   } catch (error) {
     console.error('Groq insights error:', error)
@@ -59,10 +61,10 @@ Return ONLY a valid JSON object with these exact fields, no markdown, no extra t
       overview: `The ${examType.toUpperCase()} is one of the most competitive exams in India, requiring thorough preparation across multiple subjects.`,
       syllabus: ['Mathematics', 'Physics', 'Chemistry', 'General Aptitude'],
       highWeightageTopics: ['Calculus', 'Mechanics', 'Organic Chemistry', 'Algebra'],
-      commonMistakes: ['Poor time management', 'Skipping easy questions', 'Not reading carefully'],
+      commonMistakes: ['Poor time management', 'Skipping easy questions', 'Not reading questions carefully'],
       preparationStrategy: 'Focus on building strong fundamentals, practice regularly with timed mock tests, and analyze your mistakes after each test.',
       readinessAssessment: avgAccuracy > 0
-        ? `With ${avgAccuracy}% accuracy, focus on improving weak areas systematically.`
+        ? `With ${avgAccuracy}% accuracy, you need to improve weak areas systematically.`
         : 'Take mock tests to assess your readiness.',
     },
     examType,

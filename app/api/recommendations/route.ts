@@ -50,7 +50,13 @@ Performance:
 - Weak Areas: ${weakTopics.map(t => `${t.topic} (${t.accuracy}%)`).join(', ') || 'No data yet'}
 
 Return ONLY a valid JSON array, no markdown, no extra text:
-[{"title": "...", "description": "...", "priority": "high", "category": "study"}]
+[
+  {"title": "...", "description": "...", "priority": "high", "category": "study"},
+  {"title": "...", "description": "...", "priority": "medium", "category": "practice"},
+  {"title": "...", "description": "...", "priority": "high", "category": "strategy"},
+  {"title": "...", "description": "...", "priority": "low", "category": "revision"},
+  {"title": "...", "description": "...", "priority": "medium", "category": "study"}
+]
 
 priority must be: high, medium, or low
 category must be: study, practice, strategy, or revision`
@@ -60,11 +66,16 @@ category must be: study, practice, strategy, or revision`
       model: groq('llama-3.1-8b-instant'),
       prompt,
     })
-    const cleaned = text.replace(/```json|```/g, '').trim()
-    const recommendations = JSON.parse(cleaned)
-    return NextResponse.json({ recommendations })
+
+    try {
+      const cleaned = text.replace(/```json|```/g, '').trim()
+      const recommendations = JSON.parse(cleaned)
+      return NextResponse.json({ recommendations })
+    } catch {
+      // fall through to fallback
+    }
   } catch (error) {
-    console.error('Groq error:', error)
+    console.error('Groq recommendations error:', error)
   }
 
   return NextResponse.json({
@@ -72,8 +83,8 @@ category must be: study, practice, strategy, or revision`
       { title: 'Take More Practice Tests', description: 'Upload at least 3 mock tests to get personalized insights.', priority: 'high', category: 'practice' },
       { title: 'Focus on Weak Areas', description: weakTopics.length > 0 ? `Focus on: ${weakTopics.map(t => t.topic).join(', ')}` : 'Upload tests to identify weak areas.', priority: 'high', category: 'study' },
       { title: 'Review Mistakes', description: 'Analyze your mistake patterns to understand conceptual gaps vs calculation errors.', priority: 'medium', category: 'revision' },
-      { title: 'Time Management', description: 'Practice solving questions within time limits to improve speed.', priority: 'medium', category: 'strategy' },
-      { title: 'Track Progress', description: 'Compare your scores over time to see improvement trends.', priority: 'low', category: 'strategy' },
+      { title: 'Time Management', description: 'Practice solving questions within time limits to improve speed and accuracy.', priority: 'medium', category: 'strategy' },
+      { title: 'Track Progress', description: 'Compare your scores over time to see improvement trends and stay motivated.', priority: 'low', category: 'strategy' },
     ]
   })
 }
