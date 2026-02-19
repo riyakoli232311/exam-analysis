@@ -257,7 +257,7 @@ git push origin feat/your-feature
 
 ## 📜 License
 
-MIT © [Your Name](https://github.com/your-username)
+MIT © [Gryffindors](https://github.com/riyakoli232311)
 
 ---
 
