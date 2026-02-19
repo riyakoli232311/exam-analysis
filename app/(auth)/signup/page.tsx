@@ -57,7 +57,7 @@ export default function SignUpPage() {
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
               <BookOpen className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">ExamIQ</span>
+            <span className="text-xl font-bold text-foreground">Score Sense</span>
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">Create your account</CardTitle>
           <CardDescription>Start your exam preparation journey</CardDescription>
