@@ -50,7 +50,7 @@ export default function LandingPage() {
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
               <BookOpen className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold text-foreground">ExamIQ</span>
+            <span className="text-lg font-bold text-foreground">Score Sense</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -164,7 +164,7 @@ export default function LandingPage() {
             <div className="flex items-center justify-center w-6 h-6 rounded bg-primary">
               <BookOpen className="h-3 w-3 text-primary-foreground" />
             </div>
-            <span className="text-sm font-semibold text-card-foreground">ExamIQ</span>
+            <span className="text-sm font-semibold text-card-foreground">Score Sense</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Built with structured analytics + Grok-powered AI for competitive exam preparation.
