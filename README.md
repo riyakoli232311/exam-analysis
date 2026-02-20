@@ -15,7 +15,7 @@
 
 **Upload your test results → Get deep analytics → Receive AI-driven recommendations → Ace your exam**
 
-Try it : scoresense-five.vercel.app
+Try it : [Score Sense](scoresense-five.vercel.app)
 
 <br />
 
